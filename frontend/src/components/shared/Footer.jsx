@@ -83,7 +83,7 @@ const Footer = () => {
         </div>
       </div>
       <div className="border-t border-slate-800 px-6 py-5 text-center text-xs text-slate-500">
-        Copyright 2026 Job Hunter. All rights reserved.
+        Copyright 2026 Job Hunter. Created by Abhijeet Swami.
       </div>
     </footer>
   );
