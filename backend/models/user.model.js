@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { CgPassword } from "react-icons/cg";
 
 const userSchema = new mongoose.Schema(
   {
