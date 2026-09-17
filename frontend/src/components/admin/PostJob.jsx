@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Navbar from "../shared/Navbar";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
@@ -12,13 +12,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { JOB_API_END_POINT } from "@/utils/constant";
 import { toast } from "sonner";
 import axios from "axios";
 
 const PostJob = () => {
+  const params = useParams();
+  const isEditMode = Boolean(params.id);
   const [input, setInput] = useState({
     title: "",
     description: "",
@@ -33,6 +35,43 @@ const PostJob = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { companies } = useSelector((store) => store.company);
+
+  useEffect(() => {
+    const fetchJobDetails = async () => {
+      if (!isEditMode) return;
+
+      try {
+        const res = await axios.get(`${JOB_API_END_POINT}/get/${params.id}`, {
+          withCredentials: true,
+        });
+
+        if (res.data.success) {
+          const job = res.data.job;
+          setInput({
+            title: job.title || "",
+            description: job.description || "",
+            requirements: Array.isArray(job.requirements)
+              ? job.requirements.join(", ")
+              : job.requirements || "",
+            salary: job.salary ?? "",
+            location: job.location || "",
+            jobType: job.jobType || "",
+            experience: job.experienceLevel ?? "",
+            position: job.position ?? 0,
+            companyId: job.company || "",
+          });
+        }
+      } catch (error) {
+        console.log(error);
+        toast.error(
+          error.response?.data?.message || "Failed to load job details",
+        );
+      }
+    };
+
+    fetchJobDetails();
+  }, [isEditMode, params.id]);
+
   const changeEventHandler = (e) => {
     setInput({ ...input, [e.target.name]: e.target.value });
   };
@@ -47,18 +86,32 @@ const PostJob = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      const res = await axios.post(`${JOB_API_END_POINT}/post`, input, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        withCredentials: true,
-      });
+
+      const payload = {
+        ...input,
+        requirements: input.requirements,
+      };
+
+      const res = isEditMode
+        ? await axios.put(`${JOB_API_END_POINT}/update/${params.id}`, payload, {
+            headers: {
+              "Content-Type": "application/json",
+            },
+            withCredentials: true,
+          })
+        : await axios.post(`${JOB_API_END_POINT}/post`, payload, {
+            headers: {
+              "Content-Type": "application/json",
+            },
+            withCredentials: true,
+          });
+
       if (res.data.success) {
         toast.success(res.data.message);
         navigate("/admin/jobs");
       }
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -181,7 +234,7 @@ const PostJob = () => {
             </Button>
           ) : (
             <Button type="submit" className="w-full my-4">
-              Post New Job
+              {isEditMode ? "Update Job" : "Post New Job"}
             </Button>
           )}
           {companies.length == 0 && (
